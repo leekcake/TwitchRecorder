@@ -11,6 +11,8 @@ from pydrive.auth import GoogleAuth
 
 import logging
 
+from io import BytesIO
+
 #Recorder class
 #It's read stream and send to google drive
 
@@ -18,8 +20,6 @@ class Recorder:
     username = ""
     killSignal = False
     stream = None
-
-    localStream = None
 
     currentInx = 0
     currentSize = 0
@@ -39,12 +39,6 @@ class Recorder:
 
     def getFNfromIndex(self, inx):
         return '{}_{}.{}'.format(self.username, self.startedTime, inx)
-
-    def getSavePathformIndex(self, inx):
-        return "./cache/{}/{}".format(self.username, self.getFNfromIndex(inx))
-
-    def openStreamWithIndex(self, inx):
-        self.localStream = open(self.getSavePathformIndex(inx), 'wb')
 
     def start(self):
         self.startedTime = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -71,23 +65,13 @@ class Recorder:
 
         self.myDirId = folder['id']
 
-        try:
-            os.mkdir("cache")
-        except OSError:
-            pass
-
-        try:
-            os.mkdir("cache/{}".format(self.username))
-        except OSError:
-            pass
-        self.openStreamWithIndex(0)
-
         logging.info("{}'s Stream detected, recorder startup!".format(self.username))
         threading.Thread(target=self.fetch).start()
 
     def fetch(self):
         logging.info("{}'s Stream Fetch has been started".format(self.username))
         retry = 0
+        memory = BytesIO()
         while not self.killSignal:
             try:
                 if retry >= 10:
@@ -95,7 +79,7 @@ class Recorder:
                     self.killSignal = True
                     continue
                 readed = self.stream.read(1024 * 256)
-                self.localStream.write(readed)
+                memory.write(readed)
                 self.currentSize += len(readed)
 
                 if len(readed) == 0:
@@ -104,12 +88,11 @@ class Recorder:
                     retry += 1
                     continue
 
-                if self.currentSize >= 1024 * 1024 * 300:
-                    self.localStream.close()
-                    threading.Thread(target=self.upload, args=(self.currentInx,)).start()
+                if self.currentSize >= 1024 * 1024 * 100:
+                    threading.Thread(target=self.upload, args=(self.currentInx,memory)).start()
+                    memory = BytesIO()
                     self.currentInx += 1
                     self.currentSize = 0
-                    self.openStreamWithIndex(self.currentInx)
 
                 retry = 0
             except Exception:
@@ -117,20 +100,19 @@ class Recorder:
                 sleep(retry)
                 retry += 1
         try:
-            self.localStream.close()
-            self.upload(self.currentInx)
+            self.upload(self.currentInx, memory)
         except Exception:
             pass
         self.isFinished = True
         logging.info("{}'s Stream Fetch has been finished".format(self.username))
 
-    def upload(self, inx):
+    def upload(self, inx, memory):
+        memory.seek(0)
         logging.info("{}'s Recording: {} chunk sending into drive".format(self.username, inx))
         file = self.drive.CreateFile({'title': self.getFNfromIndex(inx), "parents": [{"kind": "drive#fileLink", "id": self.myDirId}]})
-        file.SetContentFile(self.getSavePathformIndex(inx))
+        file.content = memory
         file.Upload()
-        file.content.close()
-        os.remove('{}/{}'.format(self.username, self.getFNfromIndex(inx)))
+        memory.close()
         logging.info("{}'s Recording: {} chunk sent into drive".format(self.username, inx))
 
     def intercept(self):
