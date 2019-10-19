@@ -9,6 +9,7 @@ from pydrive.auth import GoogleAuth
 import logging
 import sys
 
+
 def clear():
     return
     # for windows
@@ -34,7 +35,10 @@ class Main:
         handler.setFormatter(formatter)
         logging.getLogger().addHandler(handler)
         logging.info("Twitch Recorder startup requested")
-        logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR) # Mute discovery warning, it's working baby
+        logging.getLogger('googleapiclient.discovery_cache').setLevel(
+            logging.ERROR)  # Mute discovery warning, it's working baby
+        logging.getLogger('streamlink.stream.hls').setLevel(
+            logging.ERROR)  # Mute Failed to reload playlist, I don't have idea deal with it.
 
         logging.debug("Check Twitch API")
 
