@@ -29,6 +29,7 @@ class Checker:
                 pass
             self.isLive = False
             self.recorder.intercept()
+            self.recorder = None
         else:
             try:
                 stream = self.client.streams.get_stream_by_user(self.id, stream_type=tc_const.STREAM_TYPE_LIVE)
@@ -40,4 +41,4 @@ class Checker:
                 pass
 
     def status(self) -> str:
-        return "{}'s Broadcast: isLive {}".format(self.username, self.isLive)
+        return "{}'s Broadcast: isLive {} / Recording {}".format(self.username, self.isLive ,self.recorder != None)

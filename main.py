@@ -1,17 +1,22 @@
 from twitch import TwitchClient
 from checker import Checker
 import threading
-
-import pickle
-import os.path
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-
-SCOPES = ['https://www.googleapis.com/auth/drive']
+from os import system, name
 
 
-# Main script :p
+def clear():
+    print(chr(27) + '[2j')
+    print('\033c')
+    print('\x1bc')
+    # for windows
+    if name == 'nt':
+        _ = system('cls')
+
+        # for mac and linux(here, os.name is 'posix')
+    else:
+        _ = system('clear')
+
+    # Main script :p
 class Main:
     checkers = []
 
@@ -29,25 +34,6 @@ class Main:
 
         client = TwitchClient(client_id=clientId, oauth_token=oAuthToken)
 
-        print("Check Google Drive API")
-        """Shows basic usage of the Drive v3 API.
-        Prints the names and ids of the first 10 files the user has access to.
-        """
-        creds = None
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-            # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-
         self.checkers.append(Checker(client, "pocari_on"))
         self.checkers.append(Checker(client, "lilac_unicorn_"))
         self.checkers.append(Checker(client, "dohwa_0904"))
@@ -55,10 +41,12 @@ class Main:
         self.update()
 
     def update(self):
+        clear()
+        print( "Updateing..." )
         for checker in self.checkers:
             checker.update()
+        for checker in self.checkers:
             print(checker.status())
-
         threading.Timer(30, self.update).start()
 
 
