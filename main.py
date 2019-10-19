@@ -2,12 +2,14 @@ from twitch import TwitchClient
 from checker import Checker
 import threading
 from os import system, name
+import os
+from pydrive.auth import GoogleAuth
 
+import logging
+import sys
 
 def clear():
-    print(chr(27) + '[2j')
-    print('\033c')
-    print('\x1bc')
+    return
     # for windows
     if name == 'nt':
         _ = system('cls')
@@ -17,13 +19,22 @@ def clear():
         _ = system('clear')
 
     # Main script :p
+
+
 class Main:
     checkers = []
+    client: TwitchClient = None
 
     def main(self):
-        print("Twitch Recorder with Google Drive")
+        logging.basicConfig(filename='recorder.log', format='%(asctime)s %(message)s', filemode='w', level=logging.INFO)
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logging.getLogger().addHandler(handler)
+        logging.info("Twitch Recorder startup requested")
 
-        print("Check Twitch API")
+        logging.debug("Check Twitch API")
 
         f = open('twitch.token', 'r')
         clientId = f.readline()
@@ -32,17 +43,57 @@ class Main:
             oAuthToken = f.readline()
         f.close()
 
-        client = TwitchClient(client_id=clientId, oauth_token=oAuthToken)
+        self.client = TwitchClient(client_id=clientId, oauth_token=oAuthToken)
 
-        self.checkers.append(Checker(client, "pocari_on"))
-        self.checkers.append(Checker(client, "lilac_unicorn_"))
-        self.checkers.append(Checker(client, "dohwa_0904"))
-        self.checkers.append(Checker(client, "wkgml"))
+        logging.debug("Check Google Drive API")
+        gauth = GoogleAuth()
+        gauth.settings['get_refresh_token'] = True
+        # Create local webserver and auto handles authentication.
+        gauth.LoadCredentialsFile("token.key")
+        if gauth.credentials is None:
+            # Authenticate if they're not there
+            gauth.LocalWebserverAuth()
+        elif gauth.access_token_expired:
+            # Refresh them if expired
+            gauth.Refresh()
+        else:
+            # Initialize the saved creds
+            gauth.Authorize()
+        # Save the current credentials to a file
+        gauth.SaveCredentialsFile("token.key")
+
+        self.refreshFetchList(True)
+        logging.info("{} streamers loaded, start TwitchRecorder-GoogleDrive".format(len(self.checkers)))
         self.update()
 
+    def refreshFetchList(self, isFirst):
+        L = open("fetchList.txt", "r", encoding="utf-8").read().splitlines()
+        dict = {}
+        for line in L:
+            if line.strip() == "":
+                continue
+            line = line.split("-")[0].strip()
+            dict[line] = "Yes"
+
+        for checker in self.checkers:
+            if not checker.username in dict:
+                logging.info("{} removed from list, cleanup will started".format(checker.username))
+                checker.intercept()
+                del self.checkers[checker.username]
+            else:
+                del dict[checker.username]
+
+        for id in dict.keys():
+            if not isFirst:
+                logging.info("{} added to list, check/record will started".format(id))
+            self.checkers.append(Checker(self.client, id))
+
     def update(self):
-        clear()
-        print( "Updateing..." )
+        if os.path.exists("refreshFetchList.flag"):
+            logging.info("FetchList refresh flag detected! refresh")
+            self.refreshFetchList(False)
+            os.remove("refreshFetchList.flag")
+
         for checker in self.checkers:
             checker.update()
         for checker in self.checkers:
