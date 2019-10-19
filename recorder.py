@@ -48,7 +48,6 @@ class Recorder:
 
     def start(self):
         self.startedTime = datetime.now().strftime("%Y%m%d_%H%M%S")
-        logging.info("{}'s Recording requested".format(self.username))
         try:
             fd = open('rootDir.id', 'r')
             self.rootDirId = fd.readline()
@@ -78,6 +77,7 @@ class Recorder:
             pass
         self.openStreamWithIndex(0)
 
+        logging.info("{}'s Stream detected, recorder startup!".format(self.username))
         threading.Thread(target=self.fetch).start()
 
     def fetch(self):
@@ -126,7 +126,7 @@ class Recorder:
         file.Upload()
         file.content.close()
         os.remove('{}/{}'.format(self.username, self.getFNfromIndex(inx)))
-        logging.info("{}'s Recording: {} chunk sent int drive".format(self.username, inx))
+        logging.info("{}'s Recording: {} chunk sent into drive".format(self.username, inx))
 
     def intercept(self):
         self.killSignal = True

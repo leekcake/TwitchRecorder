@@ -18,21 +18,17 @@ class Checker:
             self.recorder.intercept()
 
     def update(self):
-        if (self.id == None):
-            logging.debug("Fetching id from username for {}".format(self.username))
-            self.id = self.client.users.translate_usernames_to_ids(self.username)[0]['id']
-
         if self.recorder != None:
             if self.recorder.isFinished:
-                logging.warning(
-                    "{}'s stream fetch finished! reset checker for live check".format(
+                logging.info(
+                    "{}'s stream finished!".format(
                         self.username))
-                # Recorder already finished so don't need to request intercept
                 self.recorder = None
                 return
         else:
             try:
                 self.recorder = Recorder(self.username)
+                self.recorder.start()
             except Exception:
                 self.recorder = None
 
