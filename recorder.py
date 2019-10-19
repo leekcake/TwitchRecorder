@@ -41,7 +41,7 @@ class Recorder:
         return '{}_{}.{}'.format(self.username, self.startedTime, inx)
 
     def getSavePathformIndex(self, inx):
-        return "./{}/{}".format(self.username, self.getFNfromIndex(inx))
+        return "./cache/{}/{}".format(self.username, self.getFNfromIndex(inx))
 
     def openStreamWithIndex(self, inx):
         self.localStream = open(self.getSavePathformIndex(inx), 'wb')
@@ -72,7 +72,12 @@ class Recorder:
         self.myDirId = folder['id']
 
         try:
-            os.mkdir(self.username)
+            os.mkdir("cache")
+        except OSError:
+            pass
+
+        try:
+            os.mkdir("cache/{}".format(self.username))
         except OSError:
             pass
         self.openStreamWithIndex(0)
