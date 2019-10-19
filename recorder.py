@@ -79,14 +79,15 @@ class Recorder:
                     self.killSignal = True
                     continue
                 readed = self.stream.read(1024 * 256)
-                memory.write(readed)
-                self.currentSize += len(readed)
 
                 if len(readed) == 0:
                     logging.warning("{}'s Stream: No more data, waiting for data. retry: {}".format(self.username, retry))
                     sleep(retry)
                     retry += 1
                     continue
+
+                memory.write(readed)
+                self.currentSize += len(readed)
 
                 if self.currentSize >= 1024 * 1024 * 100:
                     threading.Thread(target=self.upload, args=(self.currentInx,memory)).start()
@@ -103,6 +104,7 @@ class Recorder:
             self.upload(self.currentInx, memory)
         except Exception:
             pass
+        self.stream.close()
         self.isFinished = True
         logging.info("{}'s Stream Fetch has been finished".format(self.username))
 
