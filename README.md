@@ -38,10 +38,10 @@ So It's save stream chunk into mem(100MB), and send it google drive.
  - make FetchList.txt like below
 
 > streamer_id - Some memo on here
-> Ex)
-> lilac_unicorn_ - 닉혼곤듀
-> dohwa_0904 - 도화(여왕)님_
-> nopetori - 귀여운 노페토리님
+> <br>Ex)
+> <br>lilac_unicorn_ - 닉혼곤듀
+> <br>dohwa_0904 - 도화(여왕)님_
+> <br>nopetori - 귀여운 노페토리님
  -
  - make client_secrets.json, How? [Here](https://pythonhosted.org/PyDrive/quickstart.html#authentication)
  - make rootDir.id like below, is Option but recommended, Where to get? [Here](https://ploi.io/documentation/mysql/where-do-i-get-google-drive-folder-id)
