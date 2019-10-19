@@ -31,6 +31,7 @@ class Main:
         handler.setFormatter(formatter)
         logging.getLogger().addHandler(handler)
         logging.info("Twitch Recorder startup requested")
+        logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR) # Mute discovery warning, it's working baby
 
         logging.debug("Check Google Drive API")
         gauth = GoogleAuth()
