@@ -1,3 +1,5 @@
+from twitch import TwitchClient
+
 from checker import Checker
 import threading
 from os import system, name
@@ -22,6 +24,7 @@ def clear():
 
 class Main:
     checkers = []
+    client: TwitchClient = None
 
     def main(self):
         logging.basicConfig(filename='recorder.log', format='%(asctime)s %(message)s', filemode='w', level=logging.INFO)
@@ -32,6 +35,17 @@ class Main:
         logging.getLogger().addHandler(handler)
         logging.info("Twitch Recorder startup requested")
         logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR) # Mute discovery warning, it's working baby
+
+        logging.debug("Check Twitch API")
+
+        f = open('twitch.token', 'r')
+        clientId = f.readline()
+        oAuthToken = ""
+        if (f.readable()):
+            oAuthToken = f.readline()
+        f.close()
+
+        self.client = TwitchClient(client_id=clientId, oauth_token=oAuthToken)
 
         logging.debug("Check Google Drive API")
         gauth = GoogleAuth()
@@ -74,7 +88,7 @@ class Main:
         for username in dict.keys():
             if not isFirst:
                 logging.info("{} added to list, check/record will started".format(username))
-            self.checkers.append(Checker(username))
+            self.checkers.append(Checker(self.client, username))
 
     def update(self):
         if os.path.exists("refreshFetchList.flag"):
