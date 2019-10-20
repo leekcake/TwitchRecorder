@@ -96,8 +96,8 @@ class Recorder:
                     self.currentSize = 0
 
                 retry = 0
-            except Exception:
-                logging.error("Exception in Fetching of {}, retry: {}".format(self.username, retry))
+            except Exception as e:
+                logging.exception("Exception in Fetching of {}, retry: {}".format(self.username, retry))
                 sleep(retry)
                 retry += 1
         try:
