@@ -96,6 +96,16 @@ class Recorder:
                     self.currentSize = 0
 
                 retry = 0
+            except IOError as io:
+                try:
+                    logging.exception("IOError in Fetching of {}, try to reset stream".format(self.username))
+                    streams = streamlink.streams("http://twitch.tv/{0}".format(self.username))
+                    stream = streams['best']
+                    self.stream = stream.open()
+                except Exception:
+                    logging.exception("Failed to Reset stream of {}, active killSignal".format(self.username))
+                    self.killSignal = True
+                    pass
             except Exception as e:
                 logging.exception("Exception in Fetching of {}, retry: {}".format(self.username, retry))
                 sleep(retry)
