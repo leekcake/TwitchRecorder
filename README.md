@@ -20,6 +20,7 @@ It's reason that use mem/google drive instead of local disk. 16GB SD Card not en
 So It's save stream chunk into mem(100MB), and send it google drive.
 
 ## Typical checklist
+- If streamer end stream and hosting somebody immediately, this program also record hosting stream. it closed within 3 minute.
 - This program is not tested for record too long time / download many streamer in same time.
 - This program cause some error on high workload / linux server? still in testing for it.
 --([('system library', 'fopen', 'Too many open files'), ('BIO routines', 'BIO_new_file', 'system lib'), ('x509 certificate routines', 'X509_load_cert_crl_file', 'system lib')])
