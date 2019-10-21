@@ -103,7 +103,7 @@ class Recorder:
     def flushCurrentChunk(self, waitFinish = False):
         if self.currentSize == 0:
             logging.warning(
-                '{}\'s Stream received request that flush chunk but current chunk size is 0, ignore request.')
+                '{}\'s Stream received request that flush chunk but current chunk size is 0, ignore request.'.format(self.username))
             return
         if waitFinish:
             threading.Thread(target=self.upload, args=(self.currentPulse, self.currentInx, self.chunkMemory)).start()
@@ -122,7 +122,7 @@ class Recorder:
 
     def recoverFetcher(self):
         if self.isFetchFinished is not True:
-            logging.warning("{}'s Stream received request that recover fetcher but fetcher is alive?")
+            logging.warning("{}'s Stream received request that recover fetcher but fetcher is alive?".format(self.username))
             return
         # If fetcher is finished, chunk already flushed :)
         self.openStream()
