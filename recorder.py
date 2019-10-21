@@ -62,6 +62,7 @@ class Recorder:
     def newPulse(self):
         self.currentPulse += 1
         self.currentInx = 0
+        logging.warning("{}'s Stream started {} pulse".format(self.username, self.currentPulse))
 
     # Helper method for get fn, for easier management of file name
     def getFNfromIndex(self, inx):
@@ -96,12 +97,21 @@ class Recorder:
         threading.Thread(target=self.fetch).start()
 
     def openStream(self):
+        self.safeClose(self.stream)
         streams = streamlink.streams("http://twitch.tv/{0}".format(self.username))
         stream = streams['best']
         self.stream = stream.open()
 
+    def safeClose(self, io):
+        try:
+            io.close()
+        except Exception:
+            logging.exception("Safe close failed")
+            pass
+
     def flushCurrentChunk(self, waitFinish = False):
         if self.currentSize == 0:
+            self.safeClose(self.chunkMemory)
             self.chunkMemory = BytesIO()
             logging.warning(
                 '{}\'s Stream received request that flush chunk but current chunk size is 0, just recreate stream'.format(self.username))
@@ -110,8 +120,14 @@ class Recorder:
             threading.Thread(target=self.upload, args=(self.currentPulse, self.currentInx, self.chunkMemory)).start()
         else:
             self.upload(self.currentPulse, self.currentInx, self.chunkMemory)
+
         self.chunkMemory = BytesIO()
         self.currentInx += 1
+        self.currentSize = 0
+
+    def dropCurrentChunk(self):
+        self.safeClose(self.chunkMemory)
+        self.chunkMemory = BytesIO()
         self.currentSize = 0
 
     def dispose(self):
@@ -129,6 +145,7 @@ class Recorder:
         # If fetcher is finished, chunk already flushed :)
         self.openStream()
         self.fetcherKillSwitch = False
+        self.isFetchFinished = False
         self.newPulse()
         threading.Thread(target=self.fetch).start()
 
@@ -136,6 +153,7 @@ class Recorder:
         logging.info("{}'s Recording fetch has been started".format(self.username))
         waitCount = 0
         recoverTries = 0
+        killByError = False
         self.chunkMemory = BytesIO()
         while not self.fetcherKillSwitch:
             try:
@@ -164,47 +182,44 @@ class Recorder:
                 waitCount = 0
                 recoverTries = 0
             except IOError as io:
-                try:
-                    recoverTries += 1
-                    logging.exception("{}'s Recording: IOError detected, try to reset stream".format(self.username))
-                    self.flushCurrentChunk(True)
-                    self.openStream()
-                    self.newPulse()
-                except Exception:
-                    logging.exception("{}'s Recording: Failed to Reset stream, active killSignal".format(self.username))
+                    logging.exception("{}'s Recording: IOError detected, may be end of stream, active kill switch".format(self.username))
                     self.fetcherKillSwitch = True
-                    pass
+                    killByError = True
+                    continue
             except Exception as e:
-                try:
-                    recoverTries += 1
-                    logging.exception("{}'s Recording: Exception detected, try to reset stream".format(self.username))
-                    self.flushCurrentChunk(True)
-                    self.openStream()
-                    self.newPulse()
-                except Exception:
-                    logging.exception("{}'s Recording: Failed to Reset stream, active killSignal".format(self.username))
+                    logging.exception("{}'s Recording: Exception detected, may be end of stream, active kill switch".format(self.username))
                     self.fetcherKillSwitch = True
-                    pass
-        try:
-            self.flushCurrentChunk(True)
-        except Exception:
-            pass
-        try:
-            self.stream.close()
-        except IOError:
-            pass
+                    killByError = True
+                    continue
+
+        # Hotfix: skip very small record with IOError
+        # I Don't know why but hosting cause this problem
+        if self.currentInx == 0 and killByError:
+            logging.warning("Too short pulse with error...? drop this pulse!")
+            self.dropCurrentChunk()
+            self.currentPulse -= 1
+        else:
+            try:
+                self.flushCurrentChunk(True)
+            except Exception:
+                pass
+        self.safeClose(self.stream)
 
         self.isFetchFinished = True
         logging.info("{}'s Stream Fetch has been finished".format(self.username))
 
     def upload(self, pulse, inx, memory):
-        memory.seek(0)
-        logging.info("{}'s Recording: {}.{} chunk sending into drive".format(self.username, pulse, inx))
-        file = self.drive.CreateFile({'title': self.getFNfromIndex(inx), "parents": [{"kind": "drive#fileLink", "id": self.myDirId}]})
-        file.content = memory
-        file.Upload()
-        memory.close()
-        logging.info("{}'s Recording: {}.{} chunk sent into drive".format(self.username, pulse, inx))
+        try:
+            memory.seek(0)
+            logging.info("{}'s Recording: {}.{} chunk sending into drive".format(self.username, pulse, inx))
+            file = self.drive.CreateFile({'title': self.getFNfromIndex(inx), "parents": [{"kind": "drive#fileLink", "id": self.myDirId}]})
+            file.content = memory
+            file.Upload()
+            logging.info("{}'s Recording: {}.{} chunk sent into drive".format(self.username, pulse, inx))
+        except Exception:
+            logging.exception("{}'s Recording: failed to {}.{} chunk send into drive".format(self.username, pulse, inx))
+
+        self.safeClose(memory)
 
     def intercept(self):
         self.fetcherKillSwitch = True

@@ -38,6 +38,7 @@ class Checker:
                 if stream['broadcast_platform'] == tc_const.STREAM_TYPE_LIVE:
                     # If streaming is live, we need to check recorder finish for revive dead recorder if dead
                     if self.recorder.isFetchFinished:
+                        print(stream)
                         logging.warning(
                             "{}'s stream fetch finished but stream is still alive, try to recover fetcher".format(
                                 self.username))
@@ -56,7 +57,6 @@ class Checker:
         else:
             try:
                 # If stream is alive, start recorder!
-
                 stream = self.client.streams.get_stream_by_user(self.id, stream_type=tc_const.STREAM_TYPE_LIVE)
                 if stream['broadcast_platform'] == tc_const.STREAM_TYPE_LIVE:
                     try:
