@@ -38,7 +38,10 @@ class Checker:
                 logging.warning(
                     "{}'s stream fetch finished but stream is still alive, try to recover fetcher".format(
                         self.username))
-                self.recorder.recoverFetcher()
+                try:
+                    self.recorder.recoverFetcher()
+                except Exception:
+                    pass
                 return
             try:
                 stream = self.client.streams.get_stream_by_user(self.id, stream_type=tc_const.STREAM_TYPE_LIVE)
