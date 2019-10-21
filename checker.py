@@ -33,20 +33,18 @@ class Checker:
             self.id = self.client.users.translate_usernames_to_ids(self.username)[0]['id']
 
         if self.isLive:
-            # If streaming is live, we need to check recorder finish for revive dead recorder if dead
-            if self.recorder.isFetchFinished:
-                logging.warning(
-                    "{}'s stream fetch finished but stream is still alive, try to recover fetcher".format(
-                        self.username))
-                try:
-                    self.recorder.recoverFetcher()
-                except Exception:
-                    pass
-                return
             try:
                 stream = self.client.streams.get_stream_by_user(self.id, stream_type=tc_const.STREAM_TYPE_LIVE)
                 if stream['broadcast_platform'] == tc_const.STREAM_TYPE_LIVE:
-                    # If stream is alive, don't need to do anything, pass!
+                    # If streaming is live, we need to check recorder finish for revive dead recorder if dead
+                    if self.recorder.isFetchFinished:
+                        logging.warning(
+                            "{}'s stream fetch finished but stream is still alive, try to recover fetcher".format(
+                                self.username))
+                        try:
+                            self.recorder.recoverFetcher()
+                        except Exception:
+                            pass
                     return
             except Exception:
                 pass
@@ -68,7 +66,7 @@ class Checker:
                         self.recorder.start()
                     except Exception:
                         # If failed to start recorder but stream seen alive, reset live flag for retry!
-                        logging.error("Failed to start recorder for {}, reset checker for retry".format(self.username))
+                        logging.exception("Failed to start recorder for {}, reset checker for retry".format(self.username))
                         self.recorder = None
                         self.isLive = False
             except Exception:
