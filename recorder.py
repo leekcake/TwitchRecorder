@@ -120,6 +120,7 @@ class Recorder:
             sleep(0.2)
 
         self.myDir['title'] = '{}_{}-Finished'.format(self.username, self.startedTime)
+        self.myDir.Upload()
 
     def recoverFetcher(self):
         if self.isFetchFinished is not True:
