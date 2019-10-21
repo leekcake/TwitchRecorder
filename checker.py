@@ -36,11 +36,9 @@ class Checker:
             # If streaming is live, we need to check recorder finish for revive dead recorder if dead
             if self.recorder.isFetchFinished:
                 logging.warning(
-                    "{}'s stream fetch finished but stream is still alive, try to restart recorder with reset live flag".format(
+                    "{}'s stream fetch finished but stream is still alive, try to recover fetcher".format(
                         self.username))
-                self.isLive = False
-                # Recorder already finished so don't need to request intercept
-                self.recorder = None
+                self.recorder.recoverFetcher()
                 return
             try:
                 stream = self.client.streams.get_stream_by_user(self.id, stream_type=tc_const.STREAM_TYPE_LIVE)
@@ -52,7 +50,7 @@ class Checker:
             # If stream is offline, stop recorder
             logging.info("{}'s stream finished".format(self.username))
             self.isLive = False
-            self.recorder.intercept()
+            self.recorder.dispose()
             self.recorder = None
         else:
             try:
