@@ -1,33 +1,22 @@
 from twitch import TwitchClient
-
 from checker import Checker
 import threading
-from os import system, name
 import os
 from pydrive.auth import GoogleAuth
-
 import logging
 import sys
 
-
-def clear():
-    return
-    # for windows
-    if name == 'nt':
-        _ = system('cls')
-
-        # for mac and linux(here, os.name is 'posix')
-    else:
-        _ = system('clear')
-
-    # Main script :p
+# Main script :p
 
 
 class Main:
+    # Stream checkers in alive
     checkers = []
+    # Twitch Client (Global)
     client: TwitchClient = None
 
     def main(self):
+        # Configure logging module
         logging.basicConfig(filename='recorder.log', format='%(asctime)s %(message)s', filemode='w', level=logging.INFO)
         handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(logging.DEBUG)
@@ -38,7 +27,7 @@ class Main:
         logging.getLogger('googleapiclient.discovery_cache').setLevel(
             logging.ERROR)  # Mute discovery warning, it's working baby
         logging.getLogger('streamlink.stream.hls').setLevel(
-            logging.ERROR)  # Mute Failed to reload playlist, I don't have idea deal with it.
+            logging.ERROR)  # TODO: Mute Failed to reload playlist, I don't have idea deal with it.
 
         logging.debug("Check Twitch API")
 
@@ -69,7 +58,7 @@ class Main:
         gauth.SaveCredentialsFile("token.key")
 
         self.refreshFetchList(True)
-        logging.info("{} streamers loaded, start TwitchRecorder-GoogleDrive".format(len(self.checkers)))
+        logging.info("{} streamers registered for record, start TwitchRecorder-GoogleDrive".format(len(self.checkers)))
         self.update()
 
     def refreshFetchList(self, isFirst):
@@ -84,7 +73,7 @@ class Main:
         for checker in self.checkers:
             if not checker.username in dict:
                 logging.info("{} removed from list, cleanup will started".format(checker.username))
-                checker.intercept()
+                checker.dispose()
                 del self.checkers[checker.username]
             else:
                 del dict[checker.username]
