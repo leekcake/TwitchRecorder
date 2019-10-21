@@ -126,6 +126,7 @@ class Recorder:
             return
         # If fetcher is finished, chunk already flushed :)
         self.openStream()
+        self.fetcherKillSwitch = False
         threading.Thread(target=self.fetch).start()
 
     def fetch(self):
