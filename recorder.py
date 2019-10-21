@@ -102,8 +102,9 @@ class Recorder:
 
     def flushCurrentChunk(self, waitFinish = False):
         if self.currentSize == 0:
+            self.chunkMemory = BytesIO()
             logging.warning(
-                '{}\'s Stream received request that flush chunk but current chunk size is 0, ignore request.'.format(self.username))
+                '{}\'s Stream received request that flush chunk but current chunk size is 0, just recreate stream'.format(self.username))
             return
         if waitFinish:
             threading.Thread(target=self.upload, args=(self.currentPulse, self.currentInx, self.chunkMemory)).start()
@@ -127,14 +128,20 @@ class Recorder:
         # If fetcher is finished, chunk already flushed :)
         self.openStream()
         self.fetcherKillSwitch = False
+        self.newPulse()
         threading.Thread(target=self.fetch).start()
 
     def fetch(self):
         logging.info("{}'s Recording fetch has been started".format(self.username))
         waitCount = 0
+        recoverTries = 0
         self.chunkMemory = BytesIO()
         while not self.fetcherKillSwitch:
             try:
+                if recoverTries >= 10:
+                    logging.info("{}'s Recording: Too many retires, may be end of stream, active kill switch".format(self.username))
+                    self.fetcherKillSwitch = True
+                    continue
                 if waitCount >= 10:
                     logging.info("{}'s Recording: Too many wait, may be end of stream, active kill switch".format(self.username))
                     self.fetcherKillSwitch = True
@@ -154,8 +161,10 @@ class Recorder:
                     self.flushCurrentChunk()
 
                 waitCount = 0
+                recoverTries = 0
             except IOError as io:
                 try:
+                    recoverTries += 1
                     logging.exception("{}'s Recording: IOError detected, try to reset stream".format(self.username))
                     self.flushCurrentChunk(True)
                     self.openStream()
@@ -166,6 +175,7 @@ class Recorder:
                     pass
             except Exception as e:
                 try:
+                    recoverTries += 1
                     logging.exception("{}'s Recording: Exception detected, try to reset stream".format(self.username))
                     self.flushCurrentChunk(True)
                     self.openStream()
