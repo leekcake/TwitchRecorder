@@ -74,7 +74,7 @@ class Main:
             if not checker.username in dict:
                 logging.info("{} removed from list, cleanup will started".format(checker.username))
                 checker.dispose()
-                del self.checkers[checker]
+                self.checkers.remove(checker)
             else:
                 del dict[checker.username]
 
