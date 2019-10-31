@@ -85,12 +85,20 @@ class Main:
 
     def update(self):
         if os.path.exists("refreshFetchList.flag"):
-            logging.info("FetchList refresh flag detected! refresh")
-            self.refreshFetchList(False)
+            try:
+                logging.info("FetchList refresh flag detected! refresh")
+                self.refreshFetchList(False)
+            except Exception:
+                logging.exception("Failed to reload fetch list :(")
+                pass
             os.remove("refreshFetchList.flag")
 
         for checker in self.checkers:
-            checker.update()
+            try:
+                checker.update()
+            except Exception:
+                logging.exception("Failed to update checker of {}".format(checker.username))
+                pass
         for checker in self.checkers:
             print(checker.status())
         threading.Timer(30, self.update).start()
