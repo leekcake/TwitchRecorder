@@ -104,7 +104,8 @@ class Recorder:
 
     def safeClose(self, io):
         try:
-            io.close()
+            if io is not None:
+                io.close()
         except Exception:
             logging.exception("Safe close failed")
             pass

@@ -15,9 +15,11 @@ class Main:
     # Twitch Client (Global)
     client: TwitchClient = None
 
+    noLive = 0
+
     def main(self):
         # Configure logging module
-        logging.basicConfig(filename='recorder.log', format='%(asctime)s %(message)s', filemode='w', level=logging.INFO)
+        logging.basicConfig(filename='recorder.log', format='%(asctime)s %(message)s', filemode='a', level=logging.INFO)
         handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -96,12 +98,20 @@ class Main:
         for checker in self.checkers:
             try:
                 checker.update()
+                if checker.isLive:
+                    self.noLive = 0
             except Exception:
                 logging.exception("Failed to update checker of {}".format(checker.username))
                 pass
         for checker in self.checkers:
             print(checker.status())
-        threading.Timer(30, self.update).start()
+
+        self.noLive += 1
+        if self.noLive <= 3:
+            threading.Timer(30, self.update).start()
+        else:
+            logging.info("No live channel in 1min 30 seconds, restart...")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
