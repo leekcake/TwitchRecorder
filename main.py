@@ -1,3 +1,4 @@
+import streamlink
 from twitch import TwitchClient
 from checker import Checker
 import threading
@@ -14,6 +15,8 @@ class Main:
     checkers = []
     # Twitch Client (Global)
     client: TwitchClient = None
+
+    accessToken = ""
 
     noLive = 0
 
@@ -41,6 +44,12 @@ class Main:
         f.close()
 
         self.client = TwitchClient(client_id=clientId, oauth_token=oAuthToken)
+
+        logging.debug("Check Twitch Token")
+        if os.path.exists('twitch_access.token'):
+            f = open('twitch_access.token', 'r')
+            self.accessToken = f.readline()
+            f.close()
 
         logging.debug("Check Google Drive API")
         gauth = GoogleAuth()
@@ -83,7 +92,7 @@ class Main:
         for username in dict.keys():
             if not isFirst:
                 logging.info("{} added to list, check/record will started".format(username))
-            self.checkers.append(Checker(self.client, username))
+            self.checkers.append(Checker(self.client, username, self.accessToken))
 
     def update(self):
         if os.path.exists("refreshFetchList.flag"):

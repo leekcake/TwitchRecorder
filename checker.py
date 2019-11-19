@@ -19,9 +19,12 @@ class Checker:
     # Current activated recorder
     recorder: Recorder = None
 
-    def __init__(self, client, username):
+    accessToken = ""
+
+    def __init__(self, client, username, accessToken):
         self.client = client
         self.username = username
+        self.accessToken = accessToken
 
     def dispose(self):
         if self.recorder is not None:
@@ -62,7 +65,7 @@ class Checker:
                     try:
                         logging.info("{}'s stream started".format(self.username))
                         self.isLive = True
-                        self.recorder = Recorder(self.username)
+                        self.recorder = Recorder(self.username, self.accessToken)
                         self.recorder.start()
                     except Exception:
                         # If failed to start recorder but stream seen alive, reset live flag for retry!

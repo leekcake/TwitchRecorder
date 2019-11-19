@@ -16,6 +16,7 @@ from io import BytesIO
 # Recorder class
 # It's read stream and send to google drive
 from pydrive.files import GoogleDriveFile
+from streamlink import Streamlink
 
 
 class Recorder:
@@ -56,8 +57,11 @@ class Recorder:
     # In normal status, pulse don't increased!
     currentPulse = 0
 
-    def __init__(self, _id):
+    accessToken = ""
+
+    def __init__(self, _id, accessToken):
         self.username = _id
+        self.accessToken = accessToken
 
     def newPulse(self):
         self.currentPulse += 1
@@ -98,6 +102,9 @@ class Recorder:
 
     def openStream(self):
         self.safeClose(self.stream)
+        session = Streamlink()
+        if self.accessToken != "":
+            session.set_plugin_option('twitch', 'oauth-token', self.accessToken)
         streams = streamlink.streams("http://twitch.tv/{0}".format(self.username))
         stream = streams['best']
         self.stream = stream.open()
