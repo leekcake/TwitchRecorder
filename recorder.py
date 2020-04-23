@@ -18,6 +18,8 @@ from io import BytesIO
 from pydrive.files import GoogleDriveFile
 from streamlink import Streamlink
 
+from config import outputTo, OUTPUT_GDRIVE, OUTPUT_DISK
+
 
 class Recorder:
     # Twitch username for record
@@ -29,7 +31,7 @@ class Recorder:
     stream = None
 
     # Current chunk space
-    chunkMemory: BytesIO = None
+    outputStream = None
     # Current chunk inx
     currentInx = 0
     # Current chunk's memory size
@@ -85,17 +87,18 @@ class Recorder:
         # If stream is not alive, openStream will cause exception and prevent future codes and it's prevent google
         # folder creation
 
-        self.gauth = GoogleAuth()
-        self.gauth.LoadCredentialsFile("token.key")
+        if outputTo == OUTPUT_GDRIVE:
+            self.gauth = GoogleAuth()
+            self.gauth.LoadCredentialsFile("token.key")
 
-        self.drive = GoogleDrive(self.gauth)
+            self.drive = GoogleDrive(self.gauth)
 
-        folder_metadata = {'title': '{}_{}'.format(self.username, self.startedTime), 'mimeType': 'application/vnd.google-apps.folder', "parents": [{"kind": "drive#fileLink", "id": self.rootDirId}]}
-        folder = self.drive.CreateFile(folder_metadata)
-        folder.Upload()
-        self.myDir = folder
+            folder_metadata = {'title': '{}_{}'.format(self.username, self.startedTime), 'mimeType': 'application/vnd.google-apps.folder', "parents": [{"kind": "drive#fileLink", "id": self.rootDirId}]}
+            folder = self.drive.CreateFile(folder_metadata)
+            folder.Upload()
+            self.myDir = folder
 
-        self.myDirId = folder['id']
+            self.myDirId = folder['id']
 
         logging.info("{}'s Stream detected, recorder startup!".format(self.username))
         threading.Thread(target=self.fetch).start()
@@ -119,23 +122,23 @@ class Recorder:
 
     def flushCurrentChunk(self, waitFinish = False):
         if self.currentSize == 0:
-            self.safeClose(self.chunkMemory)
-            self.chunkMemory = BytesIO()
+            self.safeClose(self.outputStream)
+            self.outputStream = BytesIO()
             logging.warning(
                 '{}\'s Stream received request that flush chunk but current chunk size is 0, just recreate stream'.format(self.username))
             return
         if waitFinish:
-            threading.Thread(target=self.upload, args=(self.currentPulse, self.currentInx, self.chunkMemory)).start()
+            threading.Thread(target=self.upload, args=(self.currentPulse, self.currentInx, self.outputStream)).start()
         else:
-            self.upload(self.currentPulse, self.currentInx, self.chunkMemory)
+            self.upload(self.currentPulse, self.currentInx, self.outputStream)
 
-        self.chunkMemory = BytesIO()
+        self.outputStream = BytesIO()
         self.currentInx += 1
         self.currentSize = 0
 
     def dropCurrentChunk(self):
-        self.safeClose(self.chunkMemory)
-        self.chunkMemory = BytesIO()
+        self.safeClose(self.outputStream)
+        self.outputStream = BytesIO()
         self.currentSize = 0
 
     def dispose(self):
@@ -162,7 +165,15 @@ class Recorder:
         waitCount = 0
         recoverTries = 0
         killByError = False
-        self.chunkMemory = BytesIO()
+        if outputTo == OUTPUT_GDRIVE:
+            self.outputStream = BytesIO()
+        elif outputTo == OUTPUT_DISK:
+            if not os.path.exists("output"):
+                os.mkdir("output")
+            if not os.path.exists("output/" + self.username):
+                os.mkdir("output/" + self.username)
+            self.outputStream = open(f'output/{self.username}/' + self.getFNfromIndex('mp4'), 'wb')
+
         while not self.fetcherKillSwitch:
             try:
                 if recoverTries >= 10:
@@ -181,11 +192,12 @@ class Recorder:
                     waitCount += 1
                     continue
 
-                self.chunkMemory.write(readed)
+                self.outputStream.write(readed)
                 self.currentSize += len(readed)
 
-                if self.currentSize >= 1024 * 1024 * 100:
-                    self.flushCurrentChunk()
+                if outputTo == OUTPUT_GDRIVE:
+                    if self.currentSize >= 1024 * 1024 * 100:
+                        self.flushCurrentChunk()
 
                 waitCount = 0
                 recoverTries = 0
@@ -202,15 +214,18 @@ class Recorder:
 
         # Hotfix: skip very small record with IOError
         # I Don't know why but hosting cause this problem
-        if self.currentInx == 0 and killByError:
-            logging.warning("Too short pulse with error...? drop this pulse!")
-            self.dropCurrentChunk()
-            self.currentPulse -= 1
-        else:
-            try:
-                self.flushCurrentChunk(True)
-            except Exception:
-                pass
+        if outputTo == OUTPUT_GDRIVE:
+            if self.currentInx == 0 and killByError:
+                logging.warning("Too short pulse with error...? drop this pulse!")
+                self.dropCurrentChunk()
+                self.currentPulse -= 1
+            else:
+                try:
+                    self.flushCurrentChunk(True)
+                except Exception:
+                    pass
+        elif outputTo == OUTPUT_DISK:
+            self.outputStream.close()
         self.safeClose(self.stream)
 
         self.isFetchFinished = True
