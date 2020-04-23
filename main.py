@@ -76,7 +76,7 @@ class Main:
         L = open("fetchList.txt", "r", encoding="utf-8").read().splitlines()
         dict = {}
         for line in L:
-            if line.strip() == "":
+            if line.strip() == "" or line.strip().startswith('#'):
                 continue
             line = line.split("-")[0].strip()
             dict[line] = "Yes"
