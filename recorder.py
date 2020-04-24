@@ -19,6 +19,9 @@ from pydrive.files import GoogleDriveFile
 from streamlink import Streamlink
 
 from config import outputTo, OUTPUT_GDRIVE, OUTPUT_DISK
+from storage.basestorage import BaseStorage
+from storage.disk import Disk
+from storage.gdrive import Gdrive
 
 
 class Recorder:
@@ -30,23 +33,7 @@ class Recorder:
     # Current opened 'stream' for record 'twitch stream'
     stream = None
 
-    # Current chunk space
-    outputStream = None
-    # Current chunk inx
-    currentInx = 0
-    # Current chunk's memory size
-    currentSize = 0
-
-    # Auth data for Google Drive
-    gauth = None
-    # Google drive classes for upload to google drive
-    drive: GoogleDrive = None
-
-    # Google drive folder id for cache root
-    rootDirId = None
-    # Google drive folder id for save cache
-    myDir: GoogleDriveFile = None
-    myDirId = None
+    storage: BaseStorage
 
     # started time for set name of cache file
     startedTime = None
@@ -65,40 +52,24 @@ class Recorder:
         self.username = _id
         self.accessToken = accessToken
 
+        if outputTo == OUTPUT_GDRIVE:
+            self.storage = Gdrive()
+        else:
+            self.storage = Disk()
+        self.storage.recorder = self
+
     def newPulse(self):
         self.currentPulse += 1
-        self.currentInx = 0
         logging.warning("{}'s Stream started {} pulse".format(self.username, self.currentPulse))
-
-    # Helper method for get fn, for easier management of file name
-    def getFNfromIndex(self, inx):
-        return '{}_{}-{}.{}'.format(self.username, self.startedTime, self.currentPulse, inx)
 
     def start(self):
         self.startedTime = datetime.now().strftime("%Y%m%d_%H%M%S")
-        try:
-            fd = open('rootDir.id', 'r')
-            self.rootDirId = fd.readline()
-            fd.close()
-        except Exception:
-            logging.warning("Recording without root directory?")
 
         self.openStream()  # Open twitch stream first for prevent empty google drive folder.
         # If stream is not alive, openStream will cause exception and prevent future codes and it's prevent google
         # folder creation
 
-        if outputTo == OUTPUT_GDRIVE:
-            self.gauth = GoogleAuth()
-            self.gauth.LoadCredentialsFile("token.key")
-
-            self.drive = GoogleDrive(self.gauth)
-
-            folder_metadata = {'title': '{}_{}'.format(self.username, self.startedTime), 'mimeType': 'application/vnd.google-apps.folder', "parents": [{"kind": "drive#fileLink", "id": self.rootDirId}]}
-            folder = self.drive.CreateFile(folder_metadata)
-            folder.Upload()
-            self.myDir = folder
-
-            self.myDirId = folder['id']
+        self.storage.init()
 
         logging.info("{}'s Stream detected, recorder startup!".format(self.username))
         threading.Thread(target=self.fetch).start()
@@ -120,35 +91,12 @@ class Recorder:
             logging.exception("Safe close failed")
             pass
 
-    def flushCurrentChunk(self, waitFinish = False):
-        if self.currentSize == 0:
-            self.safeClose(self.outputStream)
-            self.outputStream = BytesIO()
-            logging.warning(
-                '{}\'s Stream received request that flush chunk but current chunk size is 0, just recreate stream'.format(self.username))
-            return
-        if waitFinish:
-            threading.Thread(target=self.upload, args=(self.currentPulse, self.currentInx, self.outputStream)).start()
-        else:
-            self.upload(self.currentPulse, self.currentInx, self.outputStream)
-
-        self.outputStream = BytesIO()
-        self.currentInx += 1
-        self.currentSize = 0
-
-    def dropCurrentChunk(self):
-        self.safeClose(self.outputStream)
-        self.outputStream = BytesIO()
-        self.currentSize = 0
-
     def dispose(self):
         self.intercept()
         while not self.isFetchFinished:
             sleep(0.2)
 
-        if outputTo == OUTPUT_GDRIVE:
-            self.myDir['title'] = '{}_{}-Finished'.format(self.username, self.startedTime)
-            self.myDir.Upload()
+        self.storage.dispose()
 
     def recoverFetcher(self):
         if self.isFetchFinished is not True:
@@ -166,14 +114,8 @@ class Recorder:
         waitCount = 0
         recoverTries = 0
         killByError = False
-        if outputTo == OUTPUT_GDRIVE:
-            self.outputStream = BytesIO()
-        elif outputTo == OUTPUT_DISK:
-            if not os.path.exists("output"):
-                os.mkdir("output")
-            if not os.path.exists("output/" + self.username):
-                os.mkdir("output/" + self.username)
-            self.outputStream = open(f'output/{self.username}/' + self.getFNfromIndex('mp4'), 'wb')
+
+        self.storage.startPush()
 
         while not self.fetcherKillSwitch:
             try:
@@ -193,12 +135,7 @@ class Recorder:
                     waitCount += 1
                     continue
 
-                self.outputStream.write(readed)
-                self.currentSize += len(readed)
-
-                if outputTo == OUTPUT_GDRIVE:
-                    if self.currentSize >= 1024 * 1024 * 100:
-                        self.flushCurrentChunk()
+                self.storage.push(readed)
 
                 waitCount = 0
                 recoverTries = 0
@@ -213,38 +150,11 @@ class Recorder:
                     killByError = True
                     continue
 
-        # Hotfix: skip very small record with IOError
-        # I Don't know why but hosting cause this problem
-        if outputTo == OUTPUT_GDRIVE:
-            if self.currentInx == 0 and killByError:
-                logging.warning("Too short pulse with error...? drop this pulse!")
-                self.dropCurrentChunk()
-                self.currentPulse -= 1
-            else:
-                try:
-                    self.flushCurrentChunk(True)
-                except Exception:
-                    pass
-        elif outputTo == OUTPUT_DISK:
-            self.outputStream.close()
-            os.rename(f'output/{self.username}/' + self.getFNfromIndex('mp4'), f'output/{self.username}/' + "Fin_" + self.getFNfromIndex('mp4'))
+        self.storage.endPush()
         self.safeClose(self.stream)
 
         self.isFetchFinished = True
         logging.info("{}'s Stream Fetch has been finished".format(self.username))
-
-    def upload(self, pulse, inx, memory):
-        try:
-            memory.seek(0)
-            logging.info("{}'s Recording: {}.{} chunk sending into drive".format(self.username, pulse, inx))
-            file = self.drive.CreateFile({'title': self.getFNfromIndex(inx), "parents": [{"kind": "drive#fileLink", "id": self.myDirId}]})
-            file.content = memory
-            file.Upload()
-            logging.info("{}'s Recording: {}.{} chunk sent into drive".format(self.username, pulse, inx))
-        except Exception:
-            logging.exception("{}'s Recording: failed to {}.{} chunk send into drive".format(self.username, pulse, inx))
-
-        self.safeClose(memory)
 
     def intercept(self):
         self.fetcherKillSwitch = True
