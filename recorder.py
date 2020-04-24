@@ -226,6 +226,7 @@ class Recorder:
                     pass
         elif outputTo == OUTPUT_DISK:
             self.outputStream.close()
+            os.rename(f'output/{self.username}/' + self.getFNfromIndex('mp4'), f'output/{self.username}/' + "Fin_" + self.getFNfromIndex('mp4'))
         self.safeClose(self.stream)
 
         self.isFetchFinished = True
