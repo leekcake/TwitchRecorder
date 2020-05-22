@@ -46,8 +46,12 @@ class Disk(BaseStorage):
             time.sleep(0.2)
 
         self.disk.close()
-        os.rename(f'output/{self.recorder.username}/' + self.getFN(),
-                  f'output/{self.recorder.username}/' + "Fin_" + self.getFN())
+        input = f'output/{self.recorder.username}/' + self.getFN()
+        if os.path.getatime(input) == 0:
+            os.remove(f'output/{self.recorder.username}/' + self.getFN())
+        else:
+            os.rename(f'output/{self.recorder.username}/' + self.getFN(),
+                      f'output/{self.recorder.username}/' + "Fin_" + self.getFN())
 
     def uploader(self, disk, memory, lock):
         self.uploaderIsLive = True
