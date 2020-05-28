@@ -47,7 +47,7 @@ class Disk(BaseStorage):
 
         self.disk.close()
         input = f'output/{self.recorder.username}/' + self.getFN()
-        if os.path.getatime(input) == 0:
+        if os.path.getsize(input) == 0:
             os.remove(f'output/{self.recorder.username}/' + self.getFN())
         else:
             os.rename(f'output/{self.recorder.username}/' + self.getFN(),
