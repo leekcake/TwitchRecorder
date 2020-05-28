@@ -68,4 +68,5 @@ class Disk(BaseStorage):
                 time.sleep(1)
             else:
                 disk.write(data)
+                disk.flush()
         self.uploaderIsLive = False
