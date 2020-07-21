@@ -2,12 +2,12 @@ import logging
 import threading
 from io import BytesIO
 
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
-from pydrive.files import GoogleDriveFile
+from pydrive2.drive import GoogleDrive
+from pydrive2.files import GoogleDriveFile
+from pydrive2.auth import GoogleAuth
 
 from storage.basestorage import BaseStorage
-
+import config
 
 class Gdrive(BaseStorage):
     # Current chunk space
@@ -101,7 +101,7 @@ class Gdrive(BaseStorage):
         self.memory.write(data)
         self.currentSize += len(data)
 
-        if self.currentSize >= 1024 * 1024 * 100:
+        if self.currentSize >= config.chunkSize:
             self.flushCurrentChunk()
 
     def endPush(self):

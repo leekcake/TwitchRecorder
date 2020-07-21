@@ -6,8 +6,8 @@ from time import sleep
 
 import os
 
-from pydrive.drive import GoogleDrive
-from pydrive.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
+from pydrive2.auth import GoogleAuth
 
 import logging
 
@@ -15,7 +15,7 @@ from io import BytesIO
 
 # Recorder class
 # It's read stream and send to google drive
-from pydrive.files import GoogleDriveFile
+from pydrive2.files import GoogleDriveFile
 from streamlink import Streamlink
 
 from config import outputTo, OUTPUT_GDRIVE, OUTPUT_DISK

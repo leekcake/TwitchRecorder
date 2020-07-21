@@ -3,7 +3,7 @@ from twitch import TwitchClient
 from checker import Checker
 import threading
 import os
-from pydrive.auth import GoogleAuth
+from pydrive2.auth import GoogleAuth
 import logging
 import sys
 

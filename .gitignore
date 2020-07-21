@@ -103,3 +103,10 @@ venv.bak/
 # mypy
 .mypy_cache/
 .idea/
+/output/
+/client_secrets.json
+/fetchList.txt
+/rootDir.id
+/token.key
+/twitch.token
+/twitch_access.token
