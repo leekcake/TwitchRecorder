@@ -1,11 +1,21 @@
+import glob
+import time
+from pathlib import Path
+
+import requests
 import streamlink
+from pydrive2.drive import GoogleDrive
 from twitch import TwitchClient
+
+import config
 from checker import Checker
 import threading
 import os
 from pydrive2.auth import GoogleAuth
 import logging
 import sys
+
+import ntpath
 
 # Main script :p
 
@@ -19,6 +29,11 @@ class Main:
     accessToken = ""
 
     noLive = 0
+
+    inUpload = False
+    thread = None
+    drive = None
+    rootDirId = None
 
     def main(self):
         # Configure logging module
@@ -67,6 +82,12 @@ class Main:
             gauth.Authorize()
         # Save the current credentials to a file
         gauth.SaveCredentialsFile("token.key")
+
+        self.drive = GoogleDrive(gauth)
+
+        fd = open('rootDir.id', 'r')
+        self.rootDirId = fd.readline()
+        fd.close()
 
         self.refreshFetchList(True)
         logging.info("{} streamers registered for record, start TwitchRecorder-GoogleDrive".format(len(self.checkers)))
@@ -122,6 +143,43 @@ class Main:
             logging.info("No live channel in 1min 30 seconds, restart...")
             sys.exit(1)
 
+        grabbed = glob.glob(f'output/**/*.mp4', recursive=True)
+
+        totalSize = 0
+        for grab in grabbed:
+            totalSize += os.path.getsize(grab)
+
+        if totalSize > config.diskWarningQuota:
+            if not os.path.exists('warning.flag'):
+                logging.info(f"Storage Quota Warning")
+                Path('warning.flag').touch()
+                requests.get(f'https://maker.ifttt.com/trigger/upload_quota/with/key/{config.diskWarningIFTTT}')
+        else:
+            if os.path.exists('warning.flag'):
+                logging.info(f"Storage Quota Solved")
+                os.remove('warning.flag')
+
+        if totalSize > config.diskUploadQuota and not self.inUpload:
+            finishList = glob.glob(f'output/**/Fin_*.mp4', recursive=True)
+            if len(finishList) == 0:
+                pass
+            else:
+                self.inUpload = True
+                self.thread = threading.Thread(target=self.uploader, args=(finishList[0] + "",))
+                self.thread.start()
+
+    def uploader(self, path):
+        try:
+            logging.info(f"Upload Quota Upload Start: {path}")
+            file = self.drive.CreateFile({'title': path.replace("output/", "").replace("output\\", "") , "parents": [{"kind": "drive#fileLink", "id": self.rootDirId}]})
+            file.SetContentFile(path)
+            file.Upload()
+            logging.info(f"Upload Quota Upload Finished: {path}")
+            time.sleep(0.5) # Wait for release file by PyDrive2 / Anti-virus / etc
+            os.remove(path)
+        except Exception:
+            logging.exception(f"Upload Quota Upload Failed: {path}")
+        self.inUpload = False
 
 if __name__ == "__main__":
     # execute only if run as a script
