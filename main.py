@@ -150,10 +150,18 @@ class Main:
             totalSize += os.path.getsize(grab)
 
         if totalSize > config.diskWarningQuota:
+
+
             if not os.path.exists('warning.flag'):
                 logging.info(f"Storage Quota Warning")
                 Path('warning.flag').touch()
                 requests.get(f'https://maker.ifttt.com/trigger/upload_quota/with/key/{config.diskWarningIFTTT}')
+            else:
+                # Repeat Every 1 hour, hurry up!
+                if os.stat('warning.flag').st_mtime < time.time() - 60 * 60:
+                    logging.info(f"Storage Quota Re-Warning")
+                    Path('warning.flag').touch()
+                    requests.get(f'https://maker.ifttt.com/trigger/upload_quota/with/key/{config.diskWarningIFTTT}')
         else:
             if os.path.exists('warning.flag'):
                 logging.info(f"Storage Quota Solved")
