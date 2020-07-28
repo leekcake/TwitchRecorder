@@ -43,7 +43,7 @@ class Main:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logging.getLogger().addHandler(handler)
-        logging.info("Twitch Recorder startup requested")
+        # logging.info("Twitch Recorder startup requested")
         logging.getLogger('googleapiclient.discovery_cache').setLevel(
             logging.ERROR)  # Mute discovery warning, it's working baby
         logging.getLogger('streamlink.stream.hls').setLevel(
@@ -90,7 +90,7 @@ class Main:
         fd.close()
 
         self.refreshFetchList(True)
-        logging.info("{} streamers registered for record, start TwitchRecorder-GoogleDrive".format(len(self.checkers)))
+        # logging.info("{} streamers registered for record, start TwitchRecorder-GoogleDrive".format(len(self.checkers)))
         self.update()
 
     def refreshFetchList(self, isFirst):
@@ -140,7 +140,7 @@ class Main:
         if self.noLive <= 3:
             threading.Timer(30, self.update).start()
         else:
-            logging.info("No live channel in 1min 30 seconds, restart...")
+            # logging.info("No live channel in 1min 30 seconds, restart...")
             sys.exit(1)
 
         grabbed = glob.glob(f'output/**/*.mp4', recursive=True)
