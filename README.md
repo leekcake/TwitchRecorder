@@ -1,7 +1,17 @@
-# TwitchRecorder-GoogleDrive
-Record twitch stream into google drive, without using local disk
+
+# TwitchRecorder
+Download twitch stream in real time, into storage(disk, gdrive)
 
 ## Purpose of development
+시간이 지나, 250 GB 정도 되는 SSD를 Odroid-N2+에 물릴 수 있게 되었습니다. 또한 보는 방송 대부분이 Just Chatting 이였기에, GDrive에 바로 보관하는게 아닌, 재 인코딩을 통해 압축을 한 뒤 보관을 하게 되었습니다.
+
+그래서 원래 시작 목적인 청크방식 녹화 시스템을 유지하면서, 다른 공간(로컬 디스크)에 녹화가 가능하도록 개조했습니다. 250GB라도 2일정도 방치하면 금방 꽉차 버리기 때문에, 용량이 부족한경우 주기적으로 알리고 상황이 개선되지 않는경우 일단 GDrive로 대피시킬 수 있도록 조치했습니다.
+
+가끔 레코더가 죽고, 녹화를 재 인코딩 하는걸 비 효율적인 방식으로 하고 있었기 때문에, 그것을 해결할 수단도 개발하기로 했습니다.
+
+<details><summary>이전 사유</summary>
+<p>
+
 2019년 9월에 트위치 스트리밍을 보기 시작했습니다.
 어느날 다시보기를 하려고 하자 어떤 다시보기는 사라져 있었고
 어떤 다시보기는 일부가 음소거 되어 있었습니다.
@@ -18,6 +28,8 @@ Replay that removed by time limit can be solved with TwitchLeecher, but muted au
 So I searching for solution, and I decided the mind to use Odroid-XU4(Idle in my room) for download stream, So I developed this.
 It's reason that use mem/google drive instead of local disk. 16GB SD Card not enough to store 2GB~10GB streams, also sd is slooooow for handle many channel.
 So It's save stream chunk into mem(100MB), and send it google drive.
+</p>
+</details>
 
 ## Typical checklist
 - If streamer end stream and hosting somebody immediately, this program also record hosting stream. it closed within 3 minute.
