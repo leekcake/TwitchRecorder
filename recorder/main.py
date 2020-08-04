@@ -177,13 +177,27 @@ class Main:
 
     def uploader(self, path):
         try:
-            logging.info(f"Upload Quota Upload Start: {path}")
-            file = self.drive.CreateFile({'title': path.replace("output/", "").replace("output\\", "") , "parents": [{"kind": "drive#fileLink", "id": self.rootDirId}]})
+            spath = path.replace("\\", "/")
+            spath = spath.replace("output/", "")
+
+            split = spath.split("/")
+            id = split[0]
+            fn = split[1]
+
+            logging.info(f"Upload Quota Upload Start: {fn} on {id}")
+
+            folder_metadata = {'title': id,
+                               'mimeType': 'application/vnd.google-apps.folder',
+                               "parents": [{"kind": "drive#fileLink", "id": self.rootDirId}]}
+            folder = self.drive.CreateFile(folder_metadata)
+            folder.Upload()
+
+            file = self.drive.CreateFile({'title': fn, "parents": [{"kind": "drive#fileLink", "id": folder['id']}]})
             file.SetContentFile(path)
             file.Upload()
-            logging.info(f"Upload Quota Upload Finished: {path}")
             time.sleep(0.5) # Wait for release file by PyDrive2 / Anti-virus / etc
             os.remove(path)
+            logging.info(f"Upload Quota Upload Finished: {path}")
         except Exception:
             logging.exception(f"Upload Quota Upload Failed: {path}")
         self.inUpload = False
