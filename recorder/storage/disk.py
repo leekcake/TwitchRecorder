@@ -18,6 +18,7 @@ class Disk(BaseStorage):
         pass
 
     def dispose(self):
+        self.endPush()
         pass
 
     def getFN(self):
