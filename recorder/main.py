@@ -8,6 +8,7 @@ from pydrive2.drive import GoogleDrive
 from twitch import TwitchClient
 
 import config
+import provider
 from checker import Checker
 import threading
 import os
@@ -34,6 +35,8 @@ class Main:
     thread = None
     drive = None
     rootDirId = None
+
+    lastTotalSize = 0
 
     def main(self):
         # Configure logging module
@@ -90,6 +93,9 @@ class Main:
         fd.close()
 
         self.refreshFetchList(True)
+
+        # provider.launch(self)
+
         # logging.info("{} streamers registered for record, start TwitchRecorder-GoogleDrive".format(len(self.checkers)))
         self.update()
 
@@ -149,9 +155,8 @@ class Main:
         for grab in grabbed:
             totalSize += os.path.getsize(grab)
 
+        self.lastTotalSize = totalSize
         if totalSize > config.diskWarningQuota:
-
-
             if not os.path.exists('warning.flag'):
                 logging.info(f"Storage Quota Warning")
                 Path('warning.flag').touch()
