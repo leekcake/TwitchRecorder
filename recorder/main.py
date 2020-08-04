@@ -93,11 +93,8 @@ class Main:
         fd.close()
 
         self.refreshFetchList(True)
-
-        # provider.launch(self)
-
-        # logging.info("{} streamers registered for record, start TwitchRecorder-GoogleDrive".format(len(self.checkers)))
-        self.update()
+        threading.Timer(1, self.update).start()
+        provider.launch(self)
 
     def refreshFetchList(self, isFirst):
         L = open("fetchList.txt", "r", encoding="utf-8").read().splitlines()
@@ -144,12 +141,7 @@ class Main:
         print("Check completed.")
 
         self.noLive += 1
-        if self.noLive <= 3:
-            threading.Timer(30, self.update).start()
-        else:
-            # logging.info("No live channel in 1min 30 seconds, restart...")
-            # sys.exit(1)
-            pass
+        threading.Timer(30, self.update).start()
 
         grabbed = glob.glob(f'output/**/*.mp4', recursive=True)
 
