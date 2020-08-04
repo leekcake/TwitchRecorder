@@ -34,8 +34,6 @@ So It's save stream chunk into mem(100MB), and send it google drive.
 ## Typical checklist
 - If streamer end stream and hosting somebody immediately, this program also record hosting stream. it closed within 3 minute.
 - This program is not tested for record too long time / download many streamer in same time.
-- This program cause some error on high workload / linux server? still in testing for it.
---([('system library', 'fopen', 'Too many open files'), ('BIO routines', 'BIO_new_file', 'system lib'), ('x509 certificate routines', 'X509_load_cert_crl_file', 'system lib')])
 - I do not guarantee that this will work normally.
 -   Because my English is not good, overall word selection and long sentence completion may be inadequate.
 ## How to launch this program
