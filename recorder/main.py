@@ -134,20 +134,22 @@ class Main:
         for checker in self.checkers:
             try:
                 checker.update()
+                print("Checking: " + checker.status())
                 if checker.isLive:
                     self.noLive = 0
             except Exception:
                 logging.exception("Failed to update checker of {}".format(checker.username))
                 pass
-        for checker in self.checkers:
-            print(checker.status())
+
+        print("Check completed.")
 
         self.noLive += 1
         if self.noLive <= 3:
             threading.Timer(30, self.update).start()
         else:
             # logging.info("No live channel in 1min 30 seconds, restart...")
-            sys.exit(1)
+            # sys.exit(1)
+            pass
 
         grabbed = glob.glob(f'output/**/*.mp4', recursive=True)
 
