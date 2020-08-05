@@ -67,7 +67,7 @@ def run_server(runner):
     asyncio.set_event_loop(loop)
 
     loop.run_until_complete(runner.setup())
-    site = web.TCPSite(runner, '0.0.0.0', 13939)
+    site = web.TCPSite(runner, '127.0.0.1', 13939)
     loop.run_until_complete(site.start())
     loop.run_forever()
 
@@ -81,6 +81,7 @@ def aiohttp_server(main):
     statusHtm = readAll('res/status.htm')
 
     APP.add_routes([
+        web.get("/", status),
         web.get('/status', status)
     ])
 
