@@ -5,6 +5,7 @@ from pathlib import Path
 import requests
 import streamlink
 from pydrive2.drive import GoogleDrive
+from pydrive2.files import GoogleDriveFile
 from twitch import TwitchClient
 
 import config
@@ -185,12 +186,18 @@ class Main:
             fn = split[1]
 
             logging.info(f"Upload Quota Upload Start: {fn} on {id}")
+            folder: GoogleDriveFile
 
             folder_metadata = {'title': id,
                                'mimeType': 'application/vnd.google-apps.folder',
                                "parents": [{"kind": "drive#fileLink", "id": self.rootDirId}]}
-            folder = self.drive.CreateFile(folder_metadata)
-            folder.Upload()
+
+            find = self.drive.ListFile({'q': f"tilte = '{id}' and {self.rootDirId} in parents and trashed=false and mimeType = 'application/vnd.google-apps.folder'"})
+            if len(find) != 0:
+                folder = find[0]
+            else:
+                folder = self.drive.CreateFile(folder_metadata)
+                folder.Upload()
 
             file = self.drive.CreateFile({'title': fn, "parents": [{"kind": "drive#fileLink", "id": folder['id']}]})
             file.SetContentFile(path)
