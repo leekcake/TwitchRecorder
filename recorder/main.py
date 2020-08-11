@@ -186,22 +186,24 @@ class Main:
             fn = split[1]
 
             logging.info(f"Upload Quota Upload Start: {fn} on {id}")
-            folder: GoogleDriveFile
+            folder: GoogleDriveFile = None
 
             folder_metadata = {'title': id,
                                'mimeType': 'application/vnd.google-apps.folder',
                                "parents": [{"kind": "drive#fileLink", "id": self.rootDirId}]}
 
-            find = self.drive.ListFile({'q': f"tilte = '{id}' and {self.rootDirId} in parents and trashed=false and mimeType = 'application/vnd.google-apps.folder'"})
+            query = f"title = '{id}' and '{self.rootDirId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'"
+            find = self.drive.ListFile({'q': query}).GetList()
             if len(find) != 0:
                 folder = find[0]
-            else:
+            if folder is None:
                 folder = self.drive.CreateFile(folder_metadata)
                 folder.Upload()
 
             file = self.drive.CreateFile({'title': fn, "parents": [{"kind": "drive#fileLink", "id": folder['id']}]})
             file.SetContentFile(path)
             file.Upload()
+            file.content.close()
             time.sleep(0.5) # Wait for release file by PyDrive2 / Anti-virus / etc
             os.remove(path)
             logging.info(f"Upload Quota Upload Finished: {path}")
