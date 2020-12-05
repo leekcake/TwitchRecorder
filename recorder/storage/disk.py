@@ -14,6 +14,9 @@ class Disk(BaseStorage):
     uploaderIsLive = False
     intercept = False
 
+    inPush = False
+    pushFN = False
+
     def init(self):
         pass
 
@@ -30,7 +33,11 @@ class Disk(BaseStorage):
             os.mkdir("output")
         if not os.path.exists("output/" + self.recorder.username):
             os.mkdir("output/" + self.recorder.username)
-        self.disk = open(f'output/{self.recorder.username}/' + self.getFN(), 'wb')
+
+        self.inPush = True
+        self.pushFN = f'output/{self.recorder.username}/' + self.getFN()
+
+        self.disk = open(self.pushFN, 'wb')
         self.memory = []
         self.lock = threading.Lock()
         self.thread = threading.Thread(target=self.uploader, args=(self.disk, self.memory, self.lock))
@@ -42,16 +49,18 @@ class Disk(BaseStorage):
         self.lock.release()
 
     def endPush(self):
+        if not self.inPush:
+            return
+        self.inPush = False
         self.intercept = True
         while self.uploaderIsLive:
             time.sleep(0.2)
 
         self.disk.close()
-        input = f'output/{self.recorder.username}/' + self.getFN()
-        if os.path.getsize(input) == 0:
-            os.remove(f'output/{self.recorder.username}/' + self.getFN())
+        if os.path.getsize(self.pushFN) == 0:
+            os.remove(self.pushFN)
         else:
-            os.rename(f'output/{self.recorder.username}/' + self.getFN(),
+            os.rename(self.pushFN,
                       f'output/{self.recorder.username}/' + "Fin_" + self.getFN())
 
     def uploader(self, disk, memory, lock):
