@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import glob
 import os
 import threading
@@ -28,7 +29,7 @@ def readAll(path):
     return all_of_it
 
 
-async def status(request: Request):
+def getHTML():
     global APP, MAIN, statusHtm
 
     grabbed = glob.glob(f'output/**/*.mp4', recursive=True)
@@ -36,6 +37,7 @@ async def status(request: Request):
     for grab in grabbed:
         total += os.path.getsize(grab)
     result = statusHtm.replace('#USE_DISK#', str(total / (1024 * 1024 * 1024)) + " GB")
+    result = result.replace('#UPDATE#', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + " GB")
     table = StringIO()
     checker: Checker
     for checker in MAIN.checkers:
@@ -53,8 +55,10 @@ async def status(request: Request):
             table.write("NA")
         table.write('</td></tr>')
 
-    result = result.replace("#TABLE_ROW#", table.getvalue())
-    return web.Response(body=result, content_type="text/html")
+    return result.replace("#TABLE_ROW#", table.getvalue())
+
+async def status(request: Request):
+    return web.Response(body=getHTML(), content_type="text/html")
 
 
 def launch(main):

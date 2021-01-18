@@ -140,8 +140,11 @@ class Main:
                 pass
 
         print("Check completed.")
+        with open("status.htm", "w") as statusHtm:
+            statusHtm.write( provider.getHTML() )
 
         self.noLive += 1
+        
         threading.Timer(30, self.update).start()
 
         grabbed = glob.glob(f'output/**/*.mp4', recursive=True)
