@@ -37,7 +37,7 @@ def getHTML():
     for grab in grabbed:
         total += os.path.getsize(grab)
     result = statusHtm.replace('#USE_DISK#', str(total / (1024 * 1024 * 1024)) + " GB")
-    result = result.replace('#UPDATE#', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + " GB")
+    result = result.replace('#UPDATE#', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     table = StringIO()
     checker: Checker
     for checker in MAIN.checkers:
