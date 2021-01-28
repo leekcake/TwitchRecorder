@@ -46,11 +46,15 @@ class Checker:
                             "{}'s stream fetch finished but stream is still alive, try to recover fetcher".format(
                                 self.username))
                         try:
-                            self.recorder.recoverFetcher()
-                        except Exception:
+                            self.recorder.dispose()
+                            self.recorder = Recorder(self.username, self.accessToken)
+                            self.recorder.start()
+                        except Exception as ex:
+                            #logging.error(str(ex) + " / Error on recover Fetcher")
                             pass
                     return
-            except Exception:
+            except Exception as ex:
+                #logging.error(str(ex) + " / Error on Live check")
                 pass
             # If stream is offline, stop recorder
             logging.info("{}'s stream finished".format(self.username))

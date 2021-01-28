@@ -62,8 +62,14 @@ async def status(request: Request):
 
 
 def launch(main):
-    t = threading.Thread(target=run_server, args=(aiohttp_server(main),))
-    t.start()
+    global APP, MAIN, statusHtm
+
+    APP = web.Application()
+    MAIN = main
+
+    statusHtm = readAll('res/status.htm')
+    #t = threading.Thread(target=run_server, args=(aiohttp_server(main),))
+    #t.start()
 
 
 def run_server(runner):
